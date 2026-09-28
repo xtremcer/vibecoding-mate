@@ -18,4 +18,6 @@
 
 测试完成后必须重新刷回 `vibecoding_mate_hid.uf2`，才能恢复键盘功能。
 
+工程还会生成 `vibecoding_mate_audio_baseline.uf2`。这是基于 Pico SDK 内置 TinyUSB 官方示例的独立 UAC2 音频枚举基线，只用于验证 Windows 音频设备驱动，不连接 INMP441，也不包含 HID。测试后同样要刷回 HID 固件。
+
 工程依赖 Raspberry Pi Pico SDK 和 TinyUSB。音频功能将在 HID 验证通过后加入。

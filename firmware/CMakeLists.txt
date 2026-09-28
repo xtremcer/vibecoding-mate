@@ -40,3 +40,22 @@ target_link_libraries(vibecoding_mate_i2s_test
 )
 
 pico_add_extra_outputs(vibecoding_mate_i2s_test)
+
+# Isolated TinyUSB UAC2 baseline. This target is not the production firmware;
+# it is used to validate Windows audio enumeration before adding HID and DMA.
+add_executable(vibecoding_mate_audio_baseline
+    src/audio_hid/audio_hid_main.c
+    src/audio_hid/audio_hid_descriptors.c
+)
+
+target_include_directories(vibecoding_mate_audio_baseline PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/src/audio_hid
+)
+
+target_link_libraries(vibecoding_mate_audio_baseline
+    pico_stdlib
+    tinyusb_device
+    tinyusb_board
+)
+
+pico_add_extra_outputs(vibecoding_mate_audio_baseline)
