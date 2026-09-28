@@ -92,7 +92,8 @@ int main(void)
   sampleFreqRng.wNumSubRanges = 1;
   sampleFreqRng.subrange[0].bMin = AUDIO_SAMPLE_RATE;
   sampleFreqRng.subrange[0].bMax = AUDIO_SAMPLE_RATE;
-  sampleFreqRng.subrange[0].bRes = 0;
+  // Windows expects a concrete, non-zero resolution in the range response.
+  sampleFreqRng.subrange[0].bRes = 1;
 
   while (1)
   {
@@ -368,7 +369,8 @@ bool tud_audio_get_req_entity_cb(uint8_t rhport, tusb_control_request_t const * 
 
           case AUDIO_CS_REQ_RANGE:
             TU_LOG2("    Get Sample Freq. range\r\n");
-            return tud_control_xfer(rhport, p_request, &sampleFreqRng, sizeof(sampleFreqRng));
+            return tud_audio_buffer_and_schedule_control_xfer(
+                rhport, p_request, (void*) &sampleFreqRng, sizeof(sampleFreqRng));
 
            // Unknown/Unsupported control
           default:
