@@ -38,27 +38,37 @@
 #include "bsp/board.h"
 #include "tusb.h"
 #include "pico/stdlib.h"
+#include "i2s_audio.h"
 
 #define PTT_GPIO 2
 #define LED_GPIO 25
 
 static bool ptt_active = false;
+static bool hid_release_pending = false;
+static uint32_t ptt_changed_at = 0;
+
+static void send_hid_release_if_ready(void) {
+  if (!hid_release_pending || !tud_hid_ready()) return;
+  uint8_t keycode[6] = { 0 };
+  tud_hid_keyboard_report(1, 0, keycode);
+  hid_release_pending = false;
+}
 
 static void update_ptt(void) {
   bool pressed = !gpio_get(PTT_GPIO);
   if (pressed == ptt_active) return;
 
   ptt_active = pressed;
+  ptt_changed_at = to_ms_since_boot(get_absolute_time());
   gpio_put(LED_GPIO, ptt_active);
+  if (ptt_active) i2s_audio_flush();
 
-  if (tud_hid_ready()) {
+  if (ptt_active && tud_hid_ready()) {
     uint8_t keycode[6] = { 0 };
-    uint8_t modifier = 0;
-    if (ptt_active) {
-      modifier = KEYBOARD_MODIFIER_LEFTGUI;
-      keycode[0] = HID_KEY_GRAVE;
-    }
-    tud_hid_keyboard_report(1, modifier, keycode);
+    keycode[0] = HID_KEY_GRAVE;
+    tud_hid_keyboard_report(1, KEYBOARD_MODIFIER_LEFTGUI, keycode);
+  } else if (!ptt_active) {
+    hid_release_pending = true;
   }
 }
 
@@ -126,6 +136,7 @@ void audio_task(void);
 int main(void)
 {
   board_init();
+  i2s_audio_init();
 
   gpio_init(PTT_GPIO);
   gpio_set_dir(PTT_GPIO, GPIO_IN);
@@ -156,6 +167,16 @@ int main(void)
     led_blinking_task();
     audio_task();
     update_ptt();
+    send_hid_release_if_ready();
+
+    // Safety timeout: never leave Win held if the physical button or USB
+    // connection behaves abnormally.
+    if (ptt_active &&
+        to_ms_since_boot(get_absolute_time()) - ptt_changed_at > 30000) {
+      ptt_active = false;
+      gpio_put(LED_GPIO, false);
+      hid_release_pending = true;
+    }
   }
 
 
@@ -199,8 +220,7 @@ void tud_resume_cb(void)
 
 void audio_task(void)
 {
-  // Yet to be filled - e.g. put meas data into TX FIFOs etc.
-  // asm("nop");
+  i2s_audio_task();
 }
 
 //--------------------------------------------------------------------+
@@ -458,7 +478,12 @@ bool tud_audio_tx_done_pre_load_cb(uint8_t rhport, uint8_t itf, uint8_t ep_in, u
   (void) ep_in;
   (void) cur_alt_setting;
 
-  tud_audio_write ((uint8_t *)test_buffer_audio, CFG_TUD_AUDIO_EP_SZ_IN);
+  static int16_t usb_audio[CFG_TUD_AUDIO_EP_SZ_IN / 2];
+  memset(usb_audio, 0, sizeof(usb_audio));
+  if (ptt_active) {
+    (void) i2s_audio_read(usb_audio, sizeof(usb_audio) / sizeof(usb_audio[0]));
+  }
+  tud_audio_write((uint8_t*) usb_audio, sizeof(usb_audio));
 
   return true;
 }
@@ -470,11 +495,6 @@ bool tud_audio_tx_done_post_load_cb(uint8_t rhport, uint16_t n_bytes_copied, uin
   (void) itf;
   (void) ep_in;
   (void) cur_alt_setting;
-
-  for (size_t cnt = 0; cnt < CFG_TUD_AUDIO_EP_SZ_IN/2; cnt++)
-  {
-    test_buffer_audio[cnt] = startVal++;
-  }
 
   return true;
 }

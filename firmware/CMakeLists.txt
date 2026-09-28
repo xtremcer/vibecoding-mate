@@ -65,16 +65,24 @@ pico_add_extra_outputs(vibecoding_mate_audio_baseline)
 add_executable(vibecoding_mate_audio_hid
     src/audio_hid_prod/audio_hid_prod_main.c
     src/audio_hid_prod/audio_hid_prod_descriptors.c
+    src/i2s_audio.c
+)
+
+pico_generate_pio_header(vibecoding_mate_audio_hid
+    ${CMAKE_CURRENT_LIST_DIR}/src/i2s_rx.pio
 )
 
 target_include_directories(vibecoding_mate_audio_hid PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/src/audio_hid_prod
+    ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 target_link_libraries(vibecoding_mate_audio_hid
     pico_stdlib
     tinyusb_device
     tinyusb_board
+    hardware_pio
+    hardware_dma
 )
 
 pico_add_extra_outputs(vibecoding_mate_audio_hid)
