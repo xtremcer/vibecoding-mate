@@ -15,10 +15,13 @@ static void update_ptt(void) {
     gpio_put(LED_GPIO, ptt_active);
 
     if (tud_hid_ready()) {
-        uint8_t modifier = ptt_active
-            ? (KEYBOARD_MODIFIER_LEFTGUI | KEYBOARD_MODIFIER_LEFTCTRL)
-            : 0;
-        tud_hid_keyboard_report(1, modifier, NULL);
+        uint8_t keycode[6] = { 0 };
+        uint8_t modifier = 0;
+        if (ptt_active) {
+            modifier = KEYBOARD_MODIFIER_LEFTGUI;
+            keycode[0] = HID_KEY_GRAVE;
+        }
+        tud_hid_keyboard_report(1, modifier, keycode);
     }
 }
 
