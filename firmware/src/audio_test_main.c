@@ -9,6 +9,7 @@
 #define LED_GPIO 25
 
 #define DMA_WORDS 256
+#define I2S_PIO_CLOCK_DIV 61.035f
 
 static uint32_t dma_buffer[DMA_WORDS];
 
@@ -41,9 +42,13 @@ int main(void) {
     pio_gpio_init(pio, I2S_DATA_GPIO);
 
     pio_sm_config config = i2s_rx_program_get_default_config(offset);
+    sm_config_set_sideset_pins(&config, I2S_SCK_GPIO);
     sm_config_set_in_pins(&config, I2S_DATA_GPIO);
     sm_config_set_in_shift(&config, true, true, 32);
     sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_RX);
+    sm_config_set_clkdiv(&config, I2S_PIO_CLOCK_DIV);
+    pio_sm_set_consecutive_pindirs(pio, sm, I2S_SCK_GPIO, 2, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, I2S_DATA_GPIO, 1, false);
     pio_sm_init(pio, sm, offset, &config);
     pio_sm_set_enabled(pio, sm, true);
 
