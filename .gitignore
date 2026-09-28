@@ -1,0 +1,9 @@
+firmware/build/
+*.elf
+*.map
+*.bin
+*.hex
+*.uf2
+
+# Local reference manuals
+raspberry_pi_pico/
