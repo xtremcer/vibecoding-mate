@@ -2,18 +2,12 @@
 #include <string.h>
 
 #define USB_VID 0xCafe
-#define USB_PID 0x4040
+#define USB_PID 0x4010
 #define USB_BCD 0x0100
 
-enum {
-    ITF_NUM_AUDIO_CONTROL = 0,
-    ITF_NUM_AUDIO_STREAMING,
-    ITF_NUM_HID,
-    ITF_NUM_TOTAL
-};
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_AUDIO_MIC_ONE_CH_DESC_LEN + TUD_HID_DESC_LEN)
-#define EPNUM_AUDIO 0x81
-#define EPNUM_HID 0x83
+enum { ITF_NUM_HID, ITF_NUM_TOTAL };
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
+#define EPNUM_HID 0x81
 
 static const uint8_t hid_report_desc[] = {
     TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(1))
@@ -46,9 +40,8 @@ uint8_t const* tud_descriptor_device_cb(void) {
 }
 
 static const uint8_t desc_configuration[] = {
-    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 100),
-    TUD_AUDIO_MIC_ONE_CH_DESCRIPTOR(ITF_NUM_AUDIO_CONTROL, 0, 2, 16,
-                                    EPNUM_AUDIO, CFG_TUD_AUDIO_EP_SZ_IN),
+    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN,
+                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
     TUD_HID_DESCRIPTOR(ITF_NUM_HID, 4, HID_ITF_PROTOCOL_KEYBOARD,
                        sizeof(hid_report_desc), EPNUM_HID, 16, 10)
 };
@@ -61,7 +54,7 @@ uint8_t const* tud_descriptor_configuration_cb(uint8_t index) {
 static char const* string_desc_arr[] = {
     (const char[]) { 0x09, 0x04 },
     "Vibecoding Mate",
-    "Vibecoding Mate Audio HID",
+    "Vibecoding Mate HID",
     "0001",
     "Keyboard"
 };
