@@ -90,8 +90,11 @@ int main(void)
   clkValid = 1;
 
   sampleFreqRng.wNumSubRanges = 1;
-  sampleFreqRng.subrange[0].bMin = AUDIO_SAMPLE_RATE;
-  sampleFreqRng.subrange[0].bMax = AUDIO_SAMPLE_RATE;
+  // Advertise the range Windows and speech applications commonly probe.
+  // The first baseline uses a dummy 48 kHz source; the production path will
+  // resample the validated 48 kHz PIO stream to the selected USB rate.
+  sampleFreqRng.subrange[0].bMin = 16000;
+  sampleFreqRng.subrange[0].bMax = 48000;
   // Windows expects a concrete, non-zero resolution in the range response.
   sampleFreqRng.subrange[0].bRes = 1;
 
