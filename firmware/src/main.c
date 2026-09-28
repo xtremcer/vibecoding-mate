@@ -22,8 +22,7 @@ static const function_key_t function_keys[FUNCTION_KEY_COUNT] = {
     { 7, KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_V },
     { 8, KEYBOARD_MODIFIER_LEFTCTRL, HID_KEY_L },
     { 9, 0, HID_KEY_ESCAPE },
-    { 10, KEYBOARD_MODIFIER_LEFTGUI | KEYBOARD_MODIFIER_LEFTSHIFT,
-          HID_KEY_F9 },
+    { 10, KEYBOARD_MODIFIER_LEFTGUI, HID_KEY_BACKSLASH },
 };
 
 static bool ptt_active = false;
@@ -99,7 +98,7 @@ static void update_function_keys(void) {
             if (i == 7) {
                 long_voice_active = !long_voice_active;
                 // Configure WeChat Input Method long voice shortcut as
-                // Win+Shift+F9. One press starts, the next stops.
+                // Win+Backslash. One press starts, the next stops.
             }
             send_one_shot(function_keys[i].modifier, function_keys[i].keycode);
         }
