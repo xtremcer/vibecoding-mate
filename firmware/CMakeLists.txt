@@ -59,3 +59,22 @@ target_link_libraries(vibecoding_mate_audio_baseline
 )
 
 pico_add_extra_outputs(vibecoding_mate_audio_baseline)
+
+# Audio + HID composite prototype. Audio is still the official dummy stream;
+# this target validates composite enumeration before wiring in PIO + DMA.
+add_executable(vibecoding_mate_audio_hid
+    src/audio_hid_prod/audio_hid_prod_main.c
+    src/audio_hid_prod/audio_hid_prod_descriptors.c
+)
+
+target_include_directories(vibecoding_mate_audio_hid PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/src/audio_hid_prod
+)
+
+target_link_libraries(vibecoding_mate_audio_hid
+    pico_stdlib
+    tinyusb_device
+    tinyusb_board
+)
+
+pico_add_extra_outputs(vibecoding_mate_audio_hid)

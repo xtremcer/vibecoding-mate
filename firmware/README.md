@@ -20,4 +20,6 @@
 
 工程还会生成 `vibecoding_mate_audio_baseline.uf2`。这是基于 Pico SDK 内置 TinyUSB 官方示例的独立 UAC2 音频枚举基线，只用于验证 Windows 音频设备驱动，不连接 INMP441，也不包含 HID。测试后同样要刷回 HID 固件。
 
+工程还会生成 `vibecoding_mate_audio_hid.uf2`。这是 Audio + HID 复合原型：已经合并当前 PTT 键盘逻辑和可被 Windows 识别的 UAC2 音频描述符，但音频数据暂时仍是 TinyUSB 基线数据，尚未用于最终测试。
+
 工程依赖 Raspberry Pi Pico SDK 和 TinyUSB。音频功能将在 HID 验证通过后加入。
