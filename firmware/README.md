@@ -14,7 +14,7 @@
 
 ## INMP441 独立测试
 
-工程还会生成 `vibecoding_mate_i2s_test.uf2`。它只测试 GP18/GP19/GP20 上的 INMP441 PIO + DMA 数据流；测试固件由 Pico 主动产生 I²S 的 SCK/WS 时钟，不枚举 USB Audio，也不会替换稳定 HID 功能。测试固件中，GP25 板载 LED 在检测到非零 I²S 数据时点亮。
+工程还会生成 `vibecoding_mate_i2s_test.uf2`。它只测试 GP18/GP19/GP20 上的 INMP441 PIO + DMA 数据流；测试固件由 Pico 主动产生 I²S 的 SCK/WS 时钟，不枚举 USB Audio，也不会替换稳定 HID 功能。测试固件中，GP25 板载 LED 在检测到非零 I²S 数据时持续点亮；尚未检测到数据时以心跳方式闪烁。
 
 测试完成后必须重新刷回 `vibecoding_mate_hid.uf2`，才能恢复键盘功能。
 

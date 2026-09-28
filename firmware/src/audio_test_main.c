@@ -54,6 +54,9 @@ int main(void) {
 
     int dma_chan = dma_claim_unused_channel(true);
     start_i2s_capture(pio, sm, dma_chan);
+    bool audio_detected = false;
+    bool heartbeat = false;
+    uint32_t next_heartbeat = to_ms_since_boot(get_absolute_time()) + 250;
 
     while (true) {
         if (!dma_channel_is_busy((uint) dma_chan)) {
@@ -66,8 +69,18 @@ int main(void) {
             }
 
             // A lit LED means the PIO + DMA path received nonzero data.
-            gpio_put(LED_GPIO, data_seen);
+            if (data_seen) {
+                audio_detected = true;
+                gpio_put(LED_GPIO, true);
+            }
             start_i2s_capture(pio, sm, dma_chan);
+        }
+
+        uint32_t now = to_ms_since_boot(get_absolute_time());
+        if (!audio_detected && (int32_t)(now - next_heartbeat) >= 0) {
+            heartbeat = !heartbeat;
+            gpio_put(LED_GPIO, heartbeat);
+            next_heartbeat = now + 250;
         }
         sleep_ms(10);
     }
