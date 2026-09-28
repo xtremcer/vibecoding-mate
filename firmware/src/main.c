@@ -27,7 +27,9 @@ static const function_key_t function_keys[FUNCTION_KEY_COUNT] = {
 };
 
 static bool ptt_active = false;
-static bool previous_function_state[FUNCTION_KEY_COUNT] = { false };
+static bool function_raw_state[FUNCTION_KEY_COUNT] = { false };
+static bool function_stable_state[FUNCTION_KEY_COUNT] = { false };
+static uint32_t function_changed_at[FUNCTION_KEY_COUNT] = { 0 };
 static bool long_voice_active = false;
 static bool one_shot_report_active = false;
 static uint32_t one_shot_release_at = 0;
@@ -78,8 +80,22 @@ static void update_function_keys(void) {
     if (ptt_active) return;
 
     for (uint i = 0; i < FUNCTION_KEY_COUNT; ++i) {
-        bool pressed = !gpio_get(function_keys[i].gpio);
-        if (pressed && !previous_function_state[i]) {
+        bool raw_pressed = !gpio_get(function_keys[i].gpio);
+        if (raw_pressed != function_raw_state[i]) {
+            function_raw_state[i] = raw_pressed;
+            function_changed_at[i] = now;
+        }
+
+        bool pressed = function_stable_state[i];
+        bool stable_transition = false;
+        if (function_raw_state[i] != function_stable_state[i] &&
+            (uint32_t)(now - function_changed_at[i]) >= 25) {
+            function_stable_state[i] = function_raw_state[i];
+            pressed = function_stable_state[i];
+            stable_transition = true;
+        }
+
+        if (stable_transition && pressed) {
             if (i == 7) {
                 long_voice_active = !long_voice_active;
                 // Configure WeChat Input Method long voice shortcut as
@@ -87,7 +103,10 @@ static void update_function_keys(void) {
             }
             send_one_shot(function_keys[i].modifier, function_keys[i].keycode);
         }
-        previous_function_state[i] = pressed;
+
+        if (!function_stable_state[i]) {
+            function_changed_at[i] = 0;
+        }
     }
 }
 

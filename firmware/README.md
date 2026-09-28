@@ -10,4 +10,6 @@
 
 长时语音键默认发送 `Ctrl+Win+Shift+F9`。请在微信输入法中将该组合键设置为长时语音的开始/停止快捷键。
 
+扩展规划：GP11～GP13 为状态 LED，GP14 为蜂鸣器，GP16/GP17 为 I²C OLED（SDA/SCL），GP15 保留备用。
+
 工程依赖 Raspberry Pi Pico SDK 和 TinyUSB。音频功能将在 HID 验证通过后加入。
