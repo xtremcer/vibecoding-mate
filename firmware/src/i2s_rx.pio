@@ -1,0 +1,11 @@
+.program i2s_rx
+
+; Capture one data bit on every rising edge of INMP441 SCK/BCLK.
+; GP18 is the clock and the input pin is configured by the C code (GP20).
+; WS is intentionally not needed for this electrical/data-path test.
+
+.wrap_target
+    wait 0 gpio 18
+    wait 1 gpio 18
+    in pins, 1
+.wrap

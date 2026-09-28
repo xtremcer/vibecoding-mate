@@ -22,3 +22,21 @@ target_link_libraries(vibecoding_mate_hid
 )
 
 pico_add_extra_outputs(vibecoding_mate_hid)
+
+# Standalone INMP441 electrical/data-path test. This target is intentionally
+# separate from the stable HID firmware and does not expose USB Audio.
+add_executable(vibecoding_mate_i2s_test
+    src/audio_test_main.c
+)
+
+pico_generate_pio_header(vibecoding_mate_i2s_test
+    ${CMAKE_CURRENT_LIST_DIR}/src/i2s_rx.pio
+)
+
+target_link_libraries(vibecoding_mate_i2s_test
+    pico_stdlib
+    hardware_pio
+    hardware_dma
+)
+
+pico_add_extra_outputs(vibecoding_mate_i2s_test)

@@ -12,4 +12,10 @@
 
 扩展规划：GP11～GP13 为状态 LED，GP14 为蜂鸣器，GP16/GP17 为 I²C OLED（SDA/SCL），GP15 保留备用。
 
+## INMP441 独立测试
+
+工程还会生成 `vibecoding_mate_i2s_test.uf2`。它只测试 GP18/GP19/GP20 上的 INMP441 PIO + DMA 数据流，不枚举 USB Audio，也不会替换稳定 HID 功能。测试固件中，GP25 板载 LED 在检测到非零 I²S 数据时点亮。
+
+测试完成后必须重新刷回 `vibecoding_mate_hid.uf2`，才能恢复键盘功能。
+
 工程依赖 Raspberry Pi Pico SDK 和 TinyUSB。音频功能将在 HID 验证通过后加入。
