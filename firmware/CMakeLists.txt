@@ -83,6 +83,7 @@ target_link_libraries(vibecoding_mate_audio_hid
     tinyusb_board
     hardware_pio
     hardware_dma
+    pico_usb_reset_interface
 )
 
 pico_add_extra_outputs(vibecoding_mate_audio_hid)
@@ -103,6 +104,7 @@ pico_generate_pio_header(vibecoding_mate_uac1_hid
 target_include_directories(vibecoding_mate_uac1_hid PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/src/uac1_hid
     ${CMAKE_CURRENT_LIST_DIR}/src
+    ${PICO_SDK_PATH}/src/common/pico_usb_reset_interface/include
 )
 
 target_link_libraries(vibecoding_mate_uac1_hid

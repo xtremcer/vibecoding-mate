@@ -4,6 +4,8 @@
 #include "device/usbd_pvt.h"
 #include "class/audio/audio.h"
 #include "i2s_audio.h"
+#include "pico/bootrom.h"
+#include "pico/usb_reset_interface.h"
 
 #define PTT_GPIO 2
 #define LED_GPIO 25
@@ -13,44 +15,37 @@
 #define UAC1_REQ_GET_CUR 0x81
 
 static bool ptt_active;
-static bool hid_release_pending;
-static bool hid_combo_pending;
+static bool ptt_raw;
+static bool ptt_reported;
+static uint32_t ptt_raw_changed_at;
 static uint32_t ptt_changed_at;
 static volatile bool audio_streaming;
 static uint8_t audio_packet[AUDIO_PACKET_BYTES] __attribute__((aligned(4)));
 
-static void hid_release_task(void) {
-    if (hid_release_pending && tud_hid_ready()) {
-        uint8_t keys[6] = {0};
-        tud_hid_keyboard_report(1, 0, keys);
-        hid_release_pending = false;
-    }
-}
-
 static void ptt_task(void) {
-    bool pressed = !gpio_get(PTT_GPIO);
-    if (pressed == ptt_active) {
-        if (ptt_active && hid_combo_pending && tud_hid_ready() &&
-            to_ms_since_boot(get_absolute_time()) - ptt_changed_at >= 25) {
-            uint8_t keys[6] = {HID_KEY_GRAVE, 0, 0, 0, 0, 0};
-            tud_hid_keyboard_report(1, KEYBOARD_MODIFIER_LEFTGUI, keys);
-            hid_combo_pending = false;
-        }
-        return;
+    uint32_t now = to_ms_since_boot(get_absolute_time());
+    bool raw_pressed = !gpio_get(PTT_GPIO);
+    if (raw_pressed != ptt_raw) {
+        ptt_raw = raw_pressed;
+        ptt_raw_changed_at = now;
     }
-    ptt_active = pressed;
-    ptt_changed_at = to_ms_since_boot(get_absolute_time());
-    gpio_put(LED_GPIO, pressed);
-    if (pressed) {
+    if (ptt_raw == ptt_reported || now - ptt_raw_changed_at < 25) return;
+
+    ptt_reported = ptt_raw;
+    ptt_active = ptt_reported;
+    ptt_changed_at = now;
+    gpio_put(LED_GPIO, ptt_active);
+    if (ptt_active) {
         i2s_audio_flush();
         if (tud_hid_ready()) {
-            uint8_t keys[6] = {0};
+            uint8_t keys[6] = {HID_KEY_GRAVE, 0, 0, 0, 0, 0};
             tud_hid_keyboard_report(1, KEYBOARD_MODIFIER_LEFTGUI, keys);
-            hid_combo_pending = true;
         }
     } else {
-        hid_combo_pending = false;
-        hid_release_pending = true;
+        if (tud_hid_ready()) {
+            uint8_t keys[6] = {0};
+            tud_hid_keyboard_report(1, 0, keys);
+        }
     }
 }
 
@@ -185,9 +180,38 @@ static const usbd_class_driver_t uac1_driver = {
     .xfer_cb = uac1_xfer, .sof = NULL
 };
 
+static void reset_init(void) {}
+static void reset_reset(uint8_t rhport) { (void)rhport; }
+static uint16_t reset_open(uint8_t rhport, tusb_desc_interface_t const *itf, uint16_t max_len) {
+    (void)rhport;
+    TU_VERIFY(max_len >= sizeof(tusb_desc_interface_t));
+    TU_VERIFY(itf->bInterfaceClass == TUSB_CLASS_VENDOR_SPECIFIC &&
+              itf->bInterfaceSubClass == RESET_INTERFACE_SUBCLASS &&
+              itf->bInterfaceProtocol == RESET_INTERFACE_PROTOCOL);
+    return sizeof(tusb_desc_interface_t);
+}
+static bool reset_control(uint8_t rhport, uint8_t stage, tusb_control_request_t const *req) {
+    (void)rhport;
+    if (stage != CONTROL_STAGE_SETUP) return true;
+    if (req->bmRequestType_bit.type == TUSB_REQ_TYPE_VENDOR &&
+        req->bmRequestType_bit.recipient == TUSB_REQ_RCPT_INTERFACE &&
+        req->bRequest == RESET_REQUEST_BOOTSEL) {
+        reset_usb_boot(0, 0);
+    }
+    return false;
+}
+static bool reset_xfer(uint8_t rhport, uint8_t ep_addr, xfer_result_t result, uint32_t bytes) {
+    (void)rhport; (void)ep_addr; (void)result; (void)bytes; return true;
+}
+static const usbd_class_driver_t reset_driver = {
+    .init = reset_init, .reset = reset_reset, .open = reset_open,
+    .control_xfer_cb = reset_control, .xfer_cb = reset_xfer, .sof = NULL
+};
+
 usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *count) {
-    *count = 1;
-    return &uac1_driver;
+    static const usbd_class_driver_t drivers[] = { uac1_driver, reset_driver };
+    *count = 2;
+    return drivers;
 }
 
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t type, uint8_t const *buffer, uint16_t bufsize) {
@@ -207,9 +231,12 @@ int main(void) {
         tud_task();
         i2s_audio_task();
         ptt_task();
-        hid_release_task();
         if (ptt_active && to_ms_since_boot(get_absolute_time()) - ptt_changed_at > 30000) {
-            ptt_active = false; gpio_put(LED_GPIO, 0); hid_release_pending = true;
+            ptt_active = false; ptt_reported = false; gpio_put(LED_GPIO, 0);
+            if (tud_hid_ready()) {
+                uint8_t keys[6] = {0};
+                tud_hid_keyboard_report(1, 0, keys);
+            }
         }
     }
 }

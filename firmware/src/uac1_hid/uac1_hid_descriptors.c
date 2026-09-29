@@ -1,6 +1,7 @@
 #include "tusb.h"
 #include "class/audio/audio.h"
 #include "tusb_config.h"
+#include "pico/usb_reset_interface.h"
 #include <string.h>
 
 #define U16LE(x) (uint8_t)((x) & 0xff), (uint8_t)(((x) >> 8) & 0xff)
@@ -9,11 +10,13 @@
 #define ITF_AUDIO_CONTROL 0
 #define ITF_AUDIO_STREAMING 1
 #define ITF_HID 2
-#define ITF_TOTAL 3
+#define ITF_RESET 3
+#define ITF_TOTAL 4
 #define EP_AUDIO_IN 0x81
 #define EP_HID_IN 0x82
 #define AUDIO_DESC_LEN 91
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_AUDIO_DESC_IAD_LEN + AUDIO_DESC_LEN + TUD_HID_DESC_LEN)
+#define RESET_DESC_LEN 9
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_AUDIO_DESC_IAD_LEN + AUDIO_DESC_LEN + TUD_HID_DESC_LEN + RESET_DESC_LEN)
 #define AC_TOTAL_LEN (9 + 12 + 9)
 
 #define INPUT_TERMINAL_ID 1
@@ -72,7 +75,11 @@ static const uint8_t desc_configuration[] = {
     7, TUSB_DESC_CS_ENDPOINT, AUDIO_CS_EP_SUBTYPE_GENERAL, 0x01, 0, U16LE(0),
 
     TUD_HID_DESCRIPTOR(ITF_HID, 4, HID_ITF_PROTOCOL_KEYBOARD,
-                       sizeof(hid_report_desc), EP_HID_IN, 16, 10)
+                       sizeof(hid_report_desc), EP_HID_IN, 16, 10),
+
+    /* Official Pico SDK reset interface used by picotool. */
+    9, TUSB_DESC_INTERFACE, ITF_RESET, 0, 0,
+    TUSB_CLASS_VENDOR_SPECIFIC, RESET_INTERFACE_SUBCLASS, RESET_INTERFACE_PROTOCOL, 6
 };
 
 TU_VERIFY_STATIC(sizeof(desc_configuration) == CONFIG_TOTAL_LEN, "UAC1 descriptor length mismatch");
@@ -88,7 +95,7 @@ uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
 }
 
 static char const *string_desc_arr[] = {
-    (const char[]){0x09, 0x04}, "Vibecoding Mate", "Vibecoding Mate UAC1", "0002", "Microphone", "Keyboard"
+    (const char[]){0x09, 0x04}, "Vibecoding Mate", "Vibecoding Mate UAC1", "0002", "Microphone", "Keyboard", "Reset"
 };
 static uint16_t desc_str[32];
 

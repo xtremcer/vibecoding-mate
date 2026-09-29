@@ -8,7 +8,9 @@
 #define I2S_SCK_GPIO 18
 #define I2S_WS_GPIO 19
 #define I2S_DATA_GPIO 20
-#define I2S_PIO_CLOCK_DIV 61.035f
+/* 125 MHz / 20.345 = 6.144 MHz PIO instruction rate. Each I2S bit uses
+ * two instructions, giving 3.072 MHz BCLK = 48 kHz x 64 bits. */
+#define I2S_PIO_CLOCK_DIV 20.345f
 #define DMA_WORDS 96
 #define AUDIO_RING_SAMPLES 1024
 
