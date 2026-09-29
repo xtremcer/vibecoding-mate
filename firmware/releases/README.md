@@ -9,8 +9,13 @@
 | `vibecoding_mate_uac1_tone.uf2` | USB 音频 1 kHz 方波验证 |
 | `vibecoding_mate_uac1_mic_test.uf2` | 连续 INMP441 采集诊断 |
 | `vibecoding_mate_uac1_mic_shift8.uf2` | I2S 位移诊断 |
+| `vibecoding_mate_uac1_mic_raw.uf2` | 0 dB 原始采样诊断 |
+| `vibecoding_mate_uac1_mic_gain6.uf2` | 6 dB 衰减诊断 |
+| `vibecoding_mate_uac1_mic_gain12.uf2` | 12 dB 衰减诊断 |
 | `vibecoding_mate_i2s_test.uf2` | 独立 I2S/PIO/DMA 诊断 |
 | `vibecoding_mate_audio_baseline.uf2` | TinyUSB UAC2 基线 |
 | `vibecoding_mate_audio_hid.uf2` | 早期 UAC2 + HID 原型 |
 
 对应的源代码和构建目标在 `firmware/`；实验原因和结果在 `docs/handoff.md`。
+
+`reference_pico_usb_mic_24bit.uf2` 是外部公开 RP2040 + INMP441 参考固件，仅用于硬件 A/B 对照，不包含本项目的 HID 功能。
