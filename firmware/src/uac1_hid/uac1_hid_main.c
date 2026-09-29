@@ -21,6 +21,9 @@ static uint32_t ptt_raw_changed_at;
 static uint32_t ptt_changed_at;
 static volatile bool audio_streaming;
 static uint8_t audio_packet[AUDIO_PACKET_BYTES] __attribute__((aligned(4)));
+#ifdef VIBECODING_UAC1_TONE
+static uint32_t tone_phase;
+#endif
 
 static void ptt_task(void) {
     uint32_t now = to_ms_since_boot(get_absolute_time());
@@ -51,9 +54,19 @@ static void ptt_task(void) {
 
 static uint16_t audio_packet_fill(void) {
     memset(audio_packet, 0, sizeof(audio_packet));
+#ifdef VIBECODING_UAC1_TONE
+    /* Deterministic 1 kHz, 12-bit square wave at 48 kHz. This bypasses the
+     * microphone completely and is used to prove the USB receive path. */
+    int16_t *samples = (int16_t *)audio_packet;
+    for (uint i = 0; i < AUDIO_PACKET_BYTES / 2; ++i) {
+        samples[i] = ((tone_phase % 48000u) < 24000u) ? 12000 : -12000;
+        tone_phase += 1000;
+    }
+#else
     if (ptt_active) {
         i2s_audio_read((int16_t *)audio_packet, AUDIO_PACKET_BYTES / 2);
     }
+#endif
     return AUDIO_PACKET_BYTES;
 }
 

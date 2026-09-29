@@ -116,3 +116,24 @@ target_link_libraries(vibecoding_mate_uac1_hid
 )
 
 pico_add_extra_outputs(vibecoding_mate_uac1_hid)
+
+# USB-link diagnostic: emits a deterministic 1 kHz PCM test signal so the
+# host-side capture path can be verified independently of the INMP441.
+add_executable(vibecoding_mate_uac1_tone
+    src/uac1_hid/uac1_hid_main.c
+    src/uac1_hid/uac1_hid_descriptors.c
+    src/i2s_audio.c
+)
+pico_generate_pio_header(vibecoding_mate_uac1_tone
+    ${CMAKE_CURRENT_LIST_DIR}/src/i2s_rx.pio
+)
+target_include_directories(vibecoding_mate_uac1_tone PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/src/uac1_hid
+    ${CMAKE_CURRENT_LIST_DIR}/src
+    ${PICO_SDK_PATH}/src/common/pico_usb_reset_interface/include
+)
+target_compile_definitions(vibecoding_mate_uac1_tone PRIVATE VIBECODING_UAC1_TONE=1)
+target_link_libraries(vibecoding_mate_uac1_tone
+    pico_stdlib tinyusb_device tinyusb_board hardware_pio hardware_dma pico_usb_reset_interface
+)
+pico_add_extra_outputs(vibecoding_mate_uac1_tone)
