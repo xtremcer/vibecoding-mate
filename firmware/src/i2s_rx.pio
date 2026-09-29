@@ -1,16 +1,19 @@
 .program i2s_rx
 .side_set 2
 
-; I2S master test: side-set bit 0 drives BCLK (GP18), bit 1 drives WS (GP19).
-; The INMP441 data input is GP20 and is sampled while BCLK is high.
+; I2S master receiver. Side-set bit 0 drives BCLK and bit 1 drives WS.
+; WS changes on the final bit of each word, matching the standard I2S
+; boundary timing used by the proven RP2040 PIO implementations.
 
 .wrap_target
-    set x, 31       side 0
+    set x, 30       side 0
 left_bits:
     in pins, 1      side 1
     jmp x-- left_bits side 0
-    set x, 31       side 2
+    in pins, 1      side 1
+    set x, 30       side 2
 right_bits:
     in pins, 1      side 3
     jmp x-- right_bits side 2
+    in pins, 1      side 3
 .wrap

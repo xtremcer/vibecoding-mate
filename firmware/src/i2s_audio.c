@@ -45,7 +45,9 @@ void i2s_audio_init(void) {
     pio_sm_config config = i2s_rx_program_get_default_config(offset);
     sm_config_set_sideset_pins(&config, I2S_SCK_GPIO);
     sm_config_set_in_pins(&config, I2S_DATA_GPIO);
-    sm_config_set_in_shift(&config, true, true, 32);
+    // Left-shift input so the first I2S bit becomes the MSB of the 32-bit
+    // word, as required for 32-bit I2S frames.
+    sm_config_set_in_shift(&config, false, true, 32);
     sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_RX);
     sm_config_set_clkdiv(&config, I2S_PIO_CLOCK_DIV);
     pio_sm_set_consecutive_pindirs(audio_pio, audio_sm, I2S_SCK_GPIO, 2, true);
@@ -63,7 +65,11 @@ void i2s_audio_task(void) {
         // Keep the most significant 16 bits for the USB PCM stream.  Using
         // a narrower shift here made the signal unnecessarily small and could
         // leave Windows' input meter looking flat.
+#ifdef VIBECODING_I2S_SHIFT8
+        int16_t sample = (int16_t) ((int32_t) dma_buffer[i] >> 8);
+#else
         int16_t sample = (int16_t) ((int32_t) dma_buffer[i] >> 16);
+#endif
         uint32_t next_write = (ring_write + 1) % AUDIO_RING_SAMPLES;
         if (next_write != ring_read) {
             audio_ring[ring_write] = sample;

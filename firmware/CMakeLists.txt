@@ -157,3 +157,26 @@ target_link_libraries(vibecoding_mate_uac1_mic_test
     pico_stdlib tinyusb_device tinyusb_board hardware_pio hardware_dma pico_usb_reset_interface
 )
 pico_add_extra_outputs(vibecoding_mate_uac1_mic_test)
+
+# Same continuous microphone test, but keeps a different 16-bit slice of the
+# captured 32-bit I2S word to diagnose 24-bit alignment.
+add_executable(vibecoding_mate_uac1_mic_shift8
+    src/uac1_hid/uac1_hid_main.c
+    src/uac1_hid/uac1_hid_descriptors.c
+    src/i2s_audio.c
+)
+pico_generate_pio_header(vibecoding_mate_uac1_mic_shift8
+    ${CMAKE_CURRENT_LIST_DIR}/src/i2s_rx.pio
+)
+target_include_directories(vibecoding_mate_uac1_mic_shift8 PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/src/uac1_hid
+    ${CMAKE_CURRENT_LIST_DIR}/src
+    ${PICO_SDK_PATH}/src/common/pico_usb_reset_interface/include
+)
+target_compile_definitions(vibecoding_mate_uac1_mic_shift8 PRIVATE
+    VIBECODING_UAC1_MIC_TEST=1 VIBECODING_I2S_SHIFT8=1
+)
+target_link_libraries(vibecoding_mate_uac1_mic_shift8
+    pico_stdlib tinyusb_device tinyusb_board hardware_pio hardware_dma pico_usb_reset_interface
+)
+pico_add_extra_outputs(vibecoding_mate_uac1_mic_shift8)
