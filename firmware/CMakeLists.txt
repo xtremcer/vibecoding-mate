@@ -86,3 +86,31 @@ target_link_libraries(vibecoding_mate_audio_hid
 )
 
 pico_add_extra_outputs(vibecoding_mate_audio_hid)
+
+# Experimental but standards-compatible UAC1 + HID composite target.  This
+# intentionally remains separate from the stable HID target until Windows
+# enumeration and audio streaming have both been verified.
+add_executable(vibecoding_mate_uac1_hid
+    src/uac1_hid/uac1_hid_main.c
+    src/uac1_hid/uac1_hid_descriptors.c
+    src/i2s_audio.c
+)
+
+pico_generate_pio_header(vibecoding_mate_uac1_hid
+    ${CMAKE_CURRENT_LIST_DIR}/src/i2s_rx.pio
+)
+
+target_include_directories(vibecoding_mate_uac1_hid PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/src/uac1_hid
+    ${CMAKE_CURRENT_LIST_DIR}/src
+)
+
+target_link_libraries(vibecoding_mate_uac1_hid
+    pico_stdlib
+    tinyusb_device
+    tinyusb_board
+    hardware_pio
+    hardware_dma
+)
+
+pico_add_extra_outputs(vibecoding_mate_uac1_hid)
