@@ -14,6 +14,7 @@
 
 static bool ptt_active;
 static bool hid_release_pending;
+static bool hid_combo_pending;
 static uint32_t ptt_changed_at;
 static volatile bool audio_streaming;
 static uint8_t audio_packet[AUDIO_PACKET_BYTES] __attribute__((aligned(4)));
@@ -28,17 +29,27 @@ static void hid_release_task(void) {
 
 static void ptt_task(void) {
     bool pressed = !gpio_get(PTT_GPIO);
-    if (pressed == ptt_active) return;
+    if (pressed == ptt_active) {
+        if (ptt_active && hid_combo_pending && tud_hid_ready() &&
+            to_ms_since_boot(get_absolute_time()) - ptt_changed_at >= 25) {
+            uint8_t keys[6] = {HID_KEY_GRAVE, 0, 0, 0, 0, 0};
+            tud_hid_keyboard_report(1, KEYBOARD_MODIFIER_LEFTGUI, keys);
+            hid_combo_pending = false;
+        }
+        return;
+    }
     ptt_active = pressed;
     ptt_changed_at = to_ms_since_boot(get_absolute_time());
     gpio_put(LED_GPIO, pressed);
     if (pressed) {
         i2s_audio_flush();
         if (tud_hid_ready()) {
-            uint8_t keys[6] = {HID_KEY_GRAVE, 0, 0, 0, 0, 0};
+            uint8_t keys[6] = {0};
             tud_hid_keyboard_report(1, KEYBOARD_MODIFIER_LEFTGUI, keys);
+            hid_combo_pending = true;
         }
     } else {
+        hid_combo_pending = false;
         hid_release_pending = true;
     }
 }

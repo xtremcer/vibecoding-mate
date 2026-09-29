@@ -58,7 +58,10 @@ void i2s_audio_task(void) {
 
     for (size_t i = 0; i < DMA_WORDS; i += 2) {
         // INMP441 supplies a 24-bit left-justified sample in the left slot.
-        int16_t sample = (int16_t) ((int32_t) dma_buffer[i] >> 14);
+        // Keep the most significant 16 bits for the USB PCM stream.  Using
+        // a narrower shift here made the signal unnecessarily small and could
+        // leave Windows' input meter looking flat.
+        int16_t sample = (int16_t) ((int32_t) dma_buffer[i] >> 16);
         uint32_t next_write = (ring_write + 1) % AUDIO_RING_SAMPLES;
         if (next_write != ring_read) {
             audio_ring[ring_write] = sample;
