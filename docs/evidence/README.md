@@ -8,5 +8,8 @@
 - `inmp441_capture_wsinvert.wav`：反向 WS 槽位后的诊断，几乎静音；
 - `inmp441_capture_after_research.wav`：恢复正确左槽后的最新录音，仍然满幅异常；
 - `inmp441_spectrum*.png`：对应频谱图。
+- `diag_raw_idle.wav`、`diag_raw_11s.wav`：0 dB 原始诊断；
+- `diag_gain6_current.wav`：6 dB 诊断，仍有削顶；
+- `diag_gain12_current.wav`、`diag_gain12_spectrum.png`：12 dB 诊断，削顶改善但噪声频谱异常。
 
 这些文件是诊断证据，不是生产音频素材。最新结论见 `docs/handoff.md`。

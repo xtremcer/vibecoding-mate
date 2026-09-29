@@ -45,6 +45,18 @@
 
 这改变了问题判断：INMP441 的供电、SD 数据链路、PIO/DMA 和 UAC1 传输已经基本打通。之前 FFmpeg 统计中的满幅值主要表示当前数字增益/样本幅度过高，不能单独作为“纯噪声、没有拾音”的证据。下一阶段应增加 Pico 端的数字衰减、直流/低频抑制和适度噪声门，再测试微信输入法。
 
+### 增益诊断结果（2026-09-29）
+
+连续采集诊断目标已经增加三档，均关闭噪声门，只改变 Pico 端衰减：
+
+- 0 dB 原始版：空闲 RMS 曾约 `-10.8 dB`，底噪很大；
+- 6 dB 版：录音 RMS 约 `-3.75 dB`，仍接近削顶，用户听感不可用；
+- 12 dB 版：峰值约 `-9695/+9293`，RMS 约 `-24.67 dB`，削顶明显改善，但高频/周期性噪声仍然很重，语音转文字识别率低。
+
+之前加入的直流滤波和噪声门版本能让无人说话时安静一些，但说话结束后会重新出现轰鸣，因此不能作为根治方案。换电脑 USB 口后现象不变，USB 口供电不是主要原因。
+
+当前最新结论：有效人声存在，但原始 I2S 音频的信噪比和频谱异常。下一步优先做 24-bit/32-bit I2S 槽的对照验证和 I2S 采样时序验证，不再继续单纯调 Windows 输入音量。
+
 ## 3. 当前硬件接线
 
 ### INMP441
@@ -120,6 +132,9 @@ $ninja='D:\Program Files\Raspberry Pi\Pico SDK v1.5.1\ninja\ninja.exe'
 | `vibecoding_mate_uac1_tone` | 连续输出 1 kHz 方波 | 已证明 Windows USB 音频链路正常 |
 | `vibecoding_mate_uac1_mic_test` | 连续发送 I2S 环形缓冲 | 当前 INMP441 诊断版本 |
 | `vibecoding_mate_uac1_mic_shift8` | 使用另一段 16 位数据切片 | 位移诊断，未解决问题 |
+| `vibecoding_mate_uac1_mic_raw` | 0 dB 原始采样诊断 | 底噪很大，不能直接使用 |
+| `vibecoding_mate_uac1_mic_gain6` | 原始采样降低 6 dB | 仍然削顶 |
+| `vibecoding_mate_uac1_mic_gain12` | 原始采样降低 12 dB | 不削顶，但噪声仍大 |
 | `vibecoding_mate_i2s_test` | 不枚举 USB Audio 的独立 I2S 测试 | 早期电气/时钟诊断 |
 | `vibecoding_mate_audio_baseline` | TinyUSB UAC2 基线 | Windows 兼容性失败 |
 | `vibecoding_mate_audio_hid` | 早期 UAC2 + HID 原型 | 不作为生产版本 |
@@ -181,6 +196,14 @@ TinyUSB 内置 UAC2 方案在 Windows 上出现过：
 - VDD 与 GND 附近应放置 0.1 µF 去耦电容。
 - SD 线应短，避免与 SCK 长距离并行。
 - 非选中声道的 SD 是高阻态，不能用它判断麦克风损坏。
+
+### 外部参考固件
+
+已保存 `firmware/releases/reference_pico_usb_mic_24bit.uf2`，来源是公开的 RP2040 + INMP441 UAC1 参考项目。该项目使用 GP18/GP19/GP20、48 kHz、32-bit I2S 槽、24-bit 精度，只读左槽，并明确不加入 ANC/AGC/AEC。文件 SHA-256：
+
+`C486A761A32F1A11CB4246536363AD8C8BE203F3EC4308E221DD5CE39B8E59F2`
+
+它是硬件 A/B 对照工具，不是本项目生产固件。若该参考固件在同一块 INMP441 上声音干净，则问题集中在本项目的 PIO/I2S 数据解析或 UAC 16-bit 转换；若参考固件同样噪声大，则优先更换模块、检查去耦和 SD 线路。
 
 ## 7. 当前代码状态与提交策略
 

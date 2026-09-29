@@ -21,6 +21,10 @@ static uint32_t dma_buffer[DMA_WORDS];
 static int16_t audio_ring[AUDIO_RING_SAMPLES];
 static volatile uint32_t ring_read = 0;
 static volatile uint32_t ring_write = 0;
+static int32_t dc_estimate = 0;
+static int32_t level_estimate = 0;
+static int32_t gate_level = 0;
+static bool gate_open = false;
 
 static void start_dma(void) {
     dma_channel_config cfg = dma_channel_get_default_config((uint) audio_dma_chan);
@@ -65,14 +69,45 @@ void i2s_audio_task(void) {
         // Keep the most significant 16 bits for the USB PCM stream.  Using
         // a narrower shift here made the signal unnecessarily small and could
         // leave Windows' input meter looking flat.
-#ifdef VIBECODING_I2S_SHIFT8
-        int16_t sample = (int16_t) ((int32_t) dma_buffer[i] >> 8);
+        int32_t sample = (int32_t) dma_buffer[i] >> 16;
+
+#ifdef VIBECODING_AUDIO_DIAGNOSTIC
+        /* Diagnostic builds intentionally bypass the gate and DC filter. */
+        sample >>= VIBECODING_AUDIO_GAIN_SHIFT;
 #else
-        int16_t sample = (int16_t) ((int32_t) dma_buffer[i] >> 16);
+
+        /* Remove the slow DC/low-frequency component before USB transport.
+         * The 8-bit accumulator gives a gentle high-pass around the speech
+         * band instead of the aggressive filtering used by Windows'
+         * communication mode. */
+        dc_estimate += (sample - dc_estimate) >> 8;
+        sample -= dc_estimate;
+
+        /* Gentle voice gate. The thresholds are deliberately separated to
+         * avoid chatter around the measured idle-noise level. */
+        int32_t magnitude = sample < 0 ? -sample : sample;
+        level_estimate += (magnitude - level_estimate) >> 4;
+        if (!gate_open && level_estimate > 1800) gate_open = true;
+        if (gate_open && level_estimate < 1200) gate_open = false;
+        int32_t gate_target = gate_open ? 256 : 0;
+        gate_level += (gate_target - gate_level) >> 5;
+        sample = (sample * gate_level) >> 8;
+
+        /* First-pass headroom: normal speech from the INMP441 was reaching
+         * the Windows input path too close to full scale. */
+        sample >>= 1;
+        if (sample > INT16_MAX) sample = INT16_MAX;
+        if (sample < INT16_MIN) sample = INT16_MIN;
+        int16_t output_sample = (int16_t) sample;
+#endif
+#ifdef VIBECODING_AUDIO_DIAGNOSTIC
+        if (sample > INT16_MAX) sample = INT16_MAX;
+        if (sample < INT16_MIN) sample = INT16_MIN;
+        int16_t output_sample = (int16_t) sample;
 #endif
         uint32_t next_write = (ring_write + 1) % AUDIO_RING_SAMPLES;
         if (next_write != ring_read) {
-            audio_ring[ring_write] = sample;
+            audio_ring[ring_write] = output_sample;
             ring_write = next_write;
         }
     }
@@ -82,6 +117,10 @@ void i2s_audio_task(void) {
 
 void i2s_audio_flush(void) {
     ring_read = ring_write;
+    dc_estimate = 0;
+    level_estimate = 0;
+    gate_level = 0;
+    gate_open = false;
 }
 
 size_t i2s_audio_read(int16_t* samples, size_t count) {
