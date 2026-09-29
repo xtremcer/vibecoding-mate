@@ -21,7 +21,7 @@ static uint32_t ptt_raw_changed_at;
 static uint32_t ptt_changed_at;
 static volatile bool audio_streaming;
 static uint8_t audio_packet[AUDIO_PACKET_BYTES] __attribute__((aligned(4)));
-#ifdef VIBECODING_UAC1_TONE
+#if defined(VIBECODING_UAC1_TONE)
 static uint32_t tone_phase;
 #endif
 
@@ -66,6 +66,11 @@ static uint16_t audio_packet_fill(void) {
     if (ptt_active) {
         i2s_audio_read((int16_t *)audio_packet, AUDIO_PACKET_BYTES / 2);
     }
+#ifdef VIBECODING_UAC1_MIC_TEST
+    else {
+        i2s_audio_read((int16_t *)audio_packet, AUDIO_PACKET_BYTES / 2);
+    }
+#endif
 #endif
     return AUDIO_PACKET_BYTES;
 }

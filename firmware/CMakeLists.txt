@@ -137,3 +137,23 @@ target_link_libraries(vibecoding_mate_uac1_tone
     pico_stdlib tinyusb_device tinyusb_board hardware_pio hardware_dma pico_usb_reset_interface
 )
 pico_add_extra_outputs(vibecoding_mate_uac1_tone)
+
+# INMP441 diagnostic: continuously streams the I2S ring without PTT gating.
+add_executable(vibecoding_mate_uac1_mic_test
+    src/uac1_hid/uac1_hid_main.c
+    src/uac1_hid/uac1_hid_descriptors.c
+    src/i2s_audio.c
+)
+pico_generate_pio_header(vibecoding_mate_uac1_mic_test
+    ${CMAKE_CURRENT_LIST_DIR}/src/i2s_rx.pio
+)
+target_include_directories(vibecoding_mate_uac1_mic_test PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/src/uac1_hid
+    ${CMAKE_CURRENT_LIST_DIR}/src
+    ${PICO_SDK_PATH}/src/common/pico_usb_reset_interface/include
+)
+target_compile_definitions(vibecoding_mate_uac1_mic_test PRIVATE VIBECODING_UAC1_MIC_TEST=1)
+target_link_libraries(vibecoding_mate_uac1_mic_test
+    pico_stdlib tinyusb_device tinyusb_board hardware_pio hardware_dma pico_usb_reset_interface
+)
+pico_add_extra_outputs(vibecoding_mate_uac1_mic_test)
